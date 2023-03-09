@@ -8,10 +8,24 @@ import seaborn as sns
 import plotly.express as px
 
 # Setting the title of the tab and the favicon
-st.set_page_config(page_title='European Airbnb pricing dashboard', page_icon=':house:', layout='centered')
+st.set_page_config(page_title='European Airbnb pricing dashboard', page_icon=':house:', layout='wide')
+
+# Adding a sidebar with an introduction to our dashboard
+with st.sidebar.container():
+    image = Image.open('airbnb.png')
+    st.image(image, use_column_width=True)
+    st.markdown("# Exploring Airbnb Data in 10 Popular European Cities")
+    st.markdown("Welcome to our Streamlit dashboard, where we explore Airbnb data from 10 popular European cities. "
+                "Airbnb has revolutionized the hospitality industry, "
+                "providing travelers with a unique and affordable way to experience new destinations. ")
+    st.markdown("Our analysis includes data from the cities of Amsterdam, Athens, Barcelona, Berlin, Budapest, "
+                "Lisbon, London, Paris, Rome, and Vienna.")
+    st.markdown("Our goal is to provide an interactive and informative platform for anyone interested in exploring "
+                "Airbnb trends in Europe. Whether you're a traveler looking to plan your next trip or a data "
+                "enthusiast interested in exploring trends.")
 
 # Define palette
-paletteC = ['#A6CEE3','#FF7F00', '#CAB2D6', '#33A02C', '#FDBF6F', '#E31A1C', '#6A3D9A', '#FB9A99', '#B2DF8A', '#1F78B4']
+paletteC = ['#ff395b','#A6CEE3', '#CAB2D6', '#33A02C', '#FDBF6F', '#E31A1C', '#6A3D9A', '#FB9A99', '#B2DF8A', '#1F78B4']
 sns.color_palette(paletteC)
 
 # load the data
@@ -25,7 +39,7 @@ europe_data_init = load_data()
 europe_data_init.drop(['Unnamed: 0', 'Unnamed: 0.1'], axis=1)
 
 # Inserting image
-image = Image.open('airbnb.png')
+image = Image.open('airbnb-pretty-1.jpeg')
 st.image(image, use_column_width=True)
 
 # Setting the title on the page with some styling
@@ -38,17 +52,9 @@ st.markdown(
     "<body style='text-align: center'> <b>Created by HVA Data Science group 3</b></br><a href=https://github.com/LaurenWritesCode/DataScienceBlogForHVA>- Project repository on GitHub</a><hr style='height:2px;border-width:0;color:gray;background-color:gray'></body>",
     unsafe_allow_html=True)
 
-# Project information
-st.header('Introduction')
-st.markdown('In this streamlit app we experimented with using streamlit to create '
-            'interactive visualisations of european Airbnb data.')
-st.markdown('We decided to do our data cleaning and initial exploration in a separate jupyter notebook. '
-            'This notebook can be found in the github repo linked above.')
-st.markdown("<hr style='height:2px;border-width:0;color:gray;background-color:gray'>", unsafe_allow_html=True)
-
-st.header('European Airbnb Data')
+st.header('Airbnb data by city')
 # Select box for cities
-input_city = st.selectbox("Select your city", europe_data_init["city"].unique())
+input_city = st.selectbox("Select the city you would like to learn about", europe_data_init["city"].unique())
 # Filter data based on selected city
 selected_data = europe_data_init[europe_data_init["city"] == input_city]
 # Select the columns you want to display
@@ -67,6 +73,7 @@ display_columns = ["realSum",
                    "city"]
 # Display selected columns of the filtered dataframe
 st.dataframe(selected_data[display_columns])
+st.subheader('The features')
 st.markdown('1. realSum, The total price of the Airbnb listing. (Numeric)\n'
             '2. room_type, The type of room being offered (e.g. private, shared, etc.). (Categorical)\n'
             '3. room_shared, Whether the room is shared or not. (Boolean)\n'
@@ -114,26 +121,29 @@ else:
     fig2, axs2 = plt.subplots(nrows=1, ncols=1, figsize=(15, 3))
 
     # Boxplot of realSum by week time
-    sns.boxplot(y='realSum', data=europe_data_for_plot, x='week_time', ax=axs[0])
+    sns.boxplot(y='realSum', data=europe_data_for_plot, x='week_time', ax=axs[0], palette=paletteC)
     axs[0].tick_params(axis='y', labelsize=15)
     axs[0].tick_params(axis='x', labelsize=15)
 
     # Layered hist of realSum by weektime
-    europe_data_for_plot.groupby('week_time')['realSum'].plot(kind='hist', alpha=0.15, bins=15, ax=axs[1])
+    colors = [paletteC[0], paletteC[1]]  # choose colors for each week_time
+    europe_data_for_plot.groupby('week_time')['realSum'].plot(kind='hist', alpha=0.5, bins=15, ax=axs[1], color=colors)
+    axs[1].legend()
 
     # Kernel density estimate of realSum for weekdays and weekends
-    sns.kdeplot(data=europe_data_for_plot[europe_data_for_plot['week_time'] == 'weekdays']['realSum'], label='weekdays', ax=axs2, palette=paletteC)
-    sns.kdeplot(data=europe_data_for_plot[europe_data_for_plot['week_time'] == 'weekends']['realSum'], label='weekends', ax=axs2, palette=paletteC)
+    sns.kdeplot(data=europe_data_for_plot[europe_data_for_plot['week_time'] == 'weekdays']['realSum'], label='weekdays', ax=axs2, color='#ff395b')
+    sns.kdeplot(data=europe_data_for_plot[europe_data_for_plot['week_time'] == 'weekends']['realSum'], label='weekends', ax=axs2, color='#A6CEE3')
+    axs2.legend()
     plt.subplots_adjust(hspace=0.65)
 
     # Show plots
     st.pyplot(fig)
     st.pyplot(fig2)
+
 st.markdown("In the previous plots we can see that week time had almost no influence on realsum.")
 st.markdown("<hr style='height:2px;border-width:0;color:gray;background-color:gray'>", unsafe_allow_html=True)
 
-
-# Scatterplot showing effect of numerical features on realsum
+# Frequency distribution of numeric features
 st.header('Frequency distribution of numeric features')
 # List all numerical features, ignore booleans
 numerical_features = ['person_capacity',
@@ -151,10 +161,10 @@ numerical_features = ['person_capacity',
 
 # Define a plotter function, so we can plot all the features in one go
 def plotter_numerical(feature, color, row):
-    sns.histplot(data=europe_data_init[feature], ax=axes[row, 0], kde=True, color=color, line_kws={'color': 'Yellow'})
+    sns.histplot(data=europe_data_init[feature], ax=axes[row, 0], kde=True, color=color, line_kws={'color': 'Yellow'}, palette=paletteC)
     axes[row, 0].set_title(f"{feature} Frequency (HISTPLOT)")
     # Create a transparent boxplot with a blue mean line
-    sns.boxplot(data=europe_data_init, x=feature, ax=axes[row, 1], color="white")
+    sns.boxplot(data=europe_data_init, x=feature, ax=axes[row, 1], color="white", palette=paletteC)
     sns.despine(ax=axes[row, 1], left=True)
     axes[row, 1].set_title(f"{feature} Distribution (BOXPLOT)")
 
@@ -168,7 +178,7 @@ plt.subplots_adjust(hspace=0.50)
 st.pyplot(fig)
 
 conclusions = """
-<div style='background-color: #f9f2f4; padding: 20px; border-radius: 10px;'>
+<div style='background-color: #fff2f4; padding: 20px; border-radius: 10px;'>
     <h3 style='text-align: center;'>Conclusions from the figure:</h3>
     <p style='text-align: justify;'>Based on the data, European Airbnb listings have the following descending order of people capacity: 2, 4, 3, 6, and 5. This suggests that most listings are suitable for couples or small groups of travelers.</p>
     <p style='text-align: justify;'>The distribution of cleanliness ratings for European Airbnb listings is left-skewed, indicating that most listings have high cleanliness ratings. This is a positive indication of the quality of the accommodations offered by Airbnb hosts.</p>
@@ -180,7 +190,6 @@ conclusions = """
 
 st.markdown(conclusions, unsafe_allow_html=True)
 
-
 # Scatterplot showing effect of numerical features on realsum
 st.header('Scatterplot showing effect of numerical features on realsum')
 # Select box for numerical features
@@ -191,7 +200,7 @@ show_trendline = st.checkbox("Show trendline", value=True)
 fig_title = f"Scatterplot of {InputDotPlotFeature} vs. Real Sum"
 # Create a scatterplot
 fig, ax = plt.subplots()
-ax.scatter(europe_data_init[InputDotPlotFeature], europe_data_init["realSum"])
+ax.scatter(europe_data_init[InputDotPlotFeature], europe_data_init["realSum"], color = "#A6CEE3")
 # Add a trendline if the checkbox is selected
 if show_trendline:
     z = np.poly1d(np.polyfit(europe_data_init[InputDotPlotFeature], europe_data_init["realSum"], 1))
@@ -200,11 +209,10 @@ if show_trendline:
 ax.set_xlabel(InputDotPlotFeature)
 ax.set_ylabel('Real Sum')
 ax.set_title(fig_title)
-
 # Display the plot
 st.pyplot(fig)
 
-st.markdown("<div style='background-color: #f9f2f4; padding: 20px; border-radius: 10px;'>"
+st.markdown("<div style='background-color: #fff2f4; padding: 20px; border-radius: 10px;'>"
             "<h3 style='text-align: center;'>Conclusions from the figure:</h3>"
             "<p style='text-align: justify;'>No bedrooms, person capacity, attraction index, and restaurant index show a positive trend-line as their value increases.</p>"
             "<p style='text-align: justify;'>Cleanliness rating and guest satisfaction seem to have a neutral trend-line which is unexpected.</p>"
@@ -226,7 +234,7 @@ def plotter_categorical_bar_and_box(feature, color, row):
     sns.barplot(x=list(europe_data_init[feature].value_counts().index), y=list(europe_data_init[feature].value_counts().values), color=color, ax=axes[0])
     axes[0].set_ylabel("Counts")
     axes[0].set_title(str(feature) + " COUNTS (BARPLOT)")
-    sns.boxplot(data=europe_data_init, x=feature, y='realSum', ax=axes[1])
+    sns.boxplot(data=europe_data_init, x=feature, y='realSum', ax=axes[1], palette=paletteC)
     axes[1].set_ylabel("Price")
     axes[1].set_title(str(feature) + " RELATION WITH REALSUM")
     st.pyplot(fig)
@@ -236,7 +244,7 @@ fig, axes = plt.subplots(nrows=7, ncols=2, figsize=(15, 35))
 
 # Iterate over each of the categorical features and plot them using the plotter function
 for i in range(7):
-    plotter_categorical_bar_and_box(categorical_features[i], '#ADD8E6', i)
+    plotter_categorical_bar_and_box(categorical_features[i], paletteC[i], i)
 
 # Adjust the spacing between subplots
 plt.subplots_adjust(hspace=0.50)
